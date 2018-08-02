@@ -21,20 +21,16 @@ class MNIST(object):
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     def network(self):
-        with slim.arg_scope([slim.conv2d], kernel_size=[5, 5]), \
-             slim.arg_scope([slim.max_pool2d], kernel_size=[2, 2]):
-            net = slim.conv2d(self.x, 32, scope='conv1')
-            net = slim.max_pool2d(net, scope='pool1')
+        net = slim.conv2d(self.x, 32, [5, 5], scope='conv1')
+        net = slim.max_pool2d(net, [2, 2], scope='pool1')
 
-            net = slim.conv2d(net, 64, scope='conv2')
-            net = slim.max_pool2d(net, scope='pool2')
+        net = slim.conv2d(net, 64, [5, 5], scope='conv2')
+        net = slim.max_pool2d(net, [2, 2], scope='pool2')
 
         net = slim.flatten(net, scope='flat')
 
-        with slim.arg_scope([slim.fully_connected], num_outputs=1024), \
-             slim.arg_scope([slim.dropout], keep_prob=self.keep_prob):
-            net = slim.fully_connected(net, scope='fc1')
-            net = slim.dropout(net, scope='dropout1')
+        net = slim.fully_connected(net, 1024, scope='fc1')
+        net = slim.dropout(net, self.keep_prob, scope='dropout1')
 
         net = slim.fully_connected(net, self.n_classes, activation_fn=None, scope='out')
         return net
