@@ -2,5 +2,6 @@ jupyter
 matplotlib
 numpy
 opencv-python
+pillow
 tensorflow-gpu==1.8.0
 tqdm
