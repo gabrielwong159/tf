@@ -8,6 +8,8 @@ This project serves as a simple guide to the OOP approach to organizing Tensorfl
 ## Getting started
 The model definition can be found in `model.py`.
 
+![Model architecture](https://cdn-images-1.medium.com/max/800/1*cPAmSB9nziZPI73VC5HAHg.png)
+
 Training and testing are in `train.py` and `test.py` respectively. The model currently trains for 5000 iterations, attaining an accuracy of `99.0%`. Increasing the number of iterations to 20000 should yield `~99.2%` accuracy.
 
 ## Resources
