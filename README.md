@@ -1,8 +1,10 @@
 # Computer vision with TensorFlow <img src="https://cdn-images-1.medium.com/max/256/1*cKG1LJvVTaWqSkYSyVqtsQ.png" width="40px" />
-A collection of computer vision tasks on TensorFlow that encompass various implementations of CNN architectures. These serve as a reference and/or proof-of-concept for further adaptation.
+A collection of computer vision tasks on TensorFlow that encompass various implementations of CNN architectures. These serve as a reference and/or proof-of-concept for further adaptation. In addition, being able to explain some of the concepts that I have applied helps me to consolidate my understanding.
+
+> If you can't explain it simply, you don't understand it well enough.
 
 ## Projects
-### `classification` - MNIST classifier
+### `mnist` - MNIST classifier
 <p align="center">
     <img alt="MNIST example"
          src="https://www.tensorflow.org/images/mnist_0-9.png" />
@@ -43,9 +45,12 @@ Such architectures are commonly used for object localization tasks, in which bot
 ### `siamese` - Siamese CNN
 Siamese networks are often used in one-shot learning tasks, such as performing classification on images that do not appear in the training set.
 
-Some implementations of Siamese CNNs compare the distance between the outputs of the last fully-connected layer across images, and perform classification based on the pair with the smallest distance. In this particular implementation, we extend the network to perform a binary softmax classification on a pair of images, to indicate whether these images are similar or not.
+Some implementations of Siamese CNNs compare the distance between the outputs of the last fully-connected layer across images, and perform a binary classification based on the distance. If the distance between the two images is sufficiently small, then we take those two images to be similar.
 
 <p align="center">
     <img alt="Example Siamese CNN architecture"
          src="https://camo.githubusercontent.com/b27757e11d8687dc846b016e0fac80a544e7b645/68747470733a2f2f736f72656e626f756d612e6769746875622e696f2f696d616765732f5369616d6573655f6469616772616d5f322e706e67" />
 </p>
+
+### `summary`
+Reference code for using `tf.summary` methods, for visualization using TensorBoard. Some useful information that can be visualized are the model loss and accuracy over time, or the computation graph of the model itself. This can be helpful when running multiple experiments across various hyperparameters, such that you can easily [compare their performances in TensorBoard](https://github.com/tensorflow/tensorboard/blob/master/README.md#runs-comparing-different-executions-of-your-model). 
