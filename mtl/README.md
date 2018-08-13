@@ -1,5 +1,4 @@
 # Multi-task learning
-## About
 Multi-task learning is widely used when there are multiple tasks given a single object. For example, in [Mask R-CNN](https://arxiv.org/abs/1703.06870), a feature map produced by a CNN is used for both object classification, and bounding box regression. Both the classification and regression tasks utilise the same CNN, differing only in the fully-connected layers.
 
 ![Example of multi-task learning architecture](https://leonardoaraujosantos.gitbooks.io/artificial-inteligence/content/more_images/LocalizationRegression2.png)

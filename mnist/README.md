@@ -1,5 +1,4 @@
 # MNIST classification
-## About
 > When one learns how to program, there's a tradition that the first thing you do is print "Hello World."
 > Just like programming has Hello World, machine learning has MNIST.
 

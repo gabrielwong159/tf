@@ -1,5 +1,4 @@
 # Fully Convolutional Networks (FCNs)
-## About
 Semantic segmentation is the task of labelling each pixel in an image with a class. Typical classification tasks with CNNs utilise fully-connected layers to produce class probabilities for an entire image.
 
 In FCNs, the fully-connected layers are replaced with transposed convolutions to yield an output with the same height and width as the original image. This allows the model to then produce pixel-level classifications.

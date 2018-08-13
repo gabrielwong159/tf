@@ -5,7 +5,7 @@ from model import MNIST
 from tqdm import tqdm, trange
 
 learning_rate = 1e-4
-num_iterations = 50_00
+num_iterations = 20_000
 batch_size = 50
 model_path = 'model/mnist/model'
 

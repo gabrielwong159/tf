@@ -1,5 +1,4 @@
 # VGG network
-## About
 The VGG-16 network is often used in transfer learning. Here we provide an implementation of the VGG-16 network using TensorFlow-Slim. The network is modelled after the implementation given by TensorFlow.
 
 <div align="center">
