@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 from tqdm import tqdm, trange
-from model import Siamese
+from model_contrastive import Siamese
 
 mnist = input_data.read_data_sets('data/', one_hot=False)
 
