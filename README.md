@@ -3,8 +3,19 @@ A collection of computer vision tasks on TensorFlow that encompass various imple
 
 > If you can't explain it simply, you don't understand it well enough.
 
-## Projects
-### `mnist` - MNIST classifier
+## List of projects
+1. [`mnist`: MNIST classifier](#mnist)
+1. [`vgg`: VGG-16 net](#vgg)
+1. [`fcn`: Fully convolutional networks](#fcn)
+1. [`siamese`: Siamese CNNs](#siamese)
+1. [`vae`: Variational Autoencoder](#vae)
+1. [`mtl`: Multi-task learning](#mtl)
+1. [`summary`: TensorFlow SummaryWriter and TensorBoard](#summary)
+
+
+## Project details
+### [`mnist`](./mnist/)
+**MNIST classifier**  
 <p align="center">
     <img alt="MNIST example"
          src="https://www.tensorflow.org/images/mnist_0-9.png" />
@@ -14,7 +25,8 @@ Simple softmax classifier for MNIST digits. Architecture consists of two convolu
 
 Computer vision tasks are often initially implemented on the MNIST dataset to ensure that the model is correctly defined, as well as to produce a baseline for model performance. As such, this serves as a guide to quickly set up an MNIST dataset, as well as reference for a simple baseline CNN architecture.
 
-### `vgg` - VGG16 net
+### [`vgg` ](./vgg/)
+**VGG-16 net**  
 TensorFlow-Slim implementation of the VGG-16 architecture. VGG-16 is often used in transfer learning, in which the VGG-16 architecture is used to obtain a feature map, and the pretrained weights are loaded before training. Thus this serves as a quick reference to getting a VGG-16 network up with minimal effort.
 
 <p align="center">
@@ -22,28 +34,20 @@ TensorFlow-Slim implementation of the VGG-16 architecture. VGG-16 is often used 
          src="https://qph.fs.quoracdn.net/main-qimg-83c7dee9e8b039c3ca27c8dd91cacbb4" />
 </p>
 
-### `fcn` - Fully convolutional networks
-Fully convolutional networks are typically used for semantic segmentation. The network architecture implemented here is from the paper titled `Fully convolutional networks for semantic segmentation`, in which VGG-16 is used as the base convolutional network.
+### [`fcn`](./fcn/)
+**Fully convolutional networks**  
+Fully convolutional networks are typically used for _semantic segmentation_. The network architecture implemented here is from the paper titled `Fully convolutional networks for semantic segmentation`, in which _VGG-16_ is used as the base convolutional network.
 
 <p align="center">
     <img alt="FCN-8s model architecture"
          src="https://devblogs.nvidia.com/wp-content/uploads/2016/11/figure15.png" />
 </p>
 
-The aim of the project is to help in the understanding of upsampling through transposed convolutional layers, and a U-net is now more commonly used as a baseline architecture for semantic segmentation tasks.
+The aim of the project is to help in the understanding of upsampling through transposed convolutional layers, and a _U-net_ is now more commonly used as a baseline architecture for semantic segmentation tasks.
 
-### `mtl` - Multi task learning
-Quick proof-of-concept for multi task learning, in which two different tasks share the same base convolutional network. This shared feature map then branches into two fully-connected network components to produce two sets of outputs. In the example, we train the model to predict the digit and colour classification independently. The convolutional network is trained across all tasks through the summation of individual loss functions.
-
-<p align="center">
-    <img alt="MTL: classification & regression"
-         src="https://leonardoaraujosantos.gitbooks.io/artificial-inteligence/content/more_images/LocalizationRegression2.png" />
-</p>
-
-Such architectures are commonly used for object localization tasks, in which both a classification and a regression task are being performed on the same network.
-
-### `siamese` - Siamese CNN
-Siamese networks are often used in one-shot learning tasks, such as performing classification on images that do not appear in the training set.
+### [`siamese`](./siamese/)
+**Siamese CNNs**  
+Siamese networks are often used in _one-shot learning_ tasks, such as performing classification on images that do not appear in the training set.
 
 Some implementations of Siamese CNNs compare the distance between the outputs of the last fully-connected layer across images, and perform a binary classification based on the distance. If the distance between the two images is sufficiently small, then we take those two images to be similar.
 
@@ -52,5 +56,28 @@ Some implementations of Siamese CNNs compare the distance between the outputs of
          src="https://camo.githubusercontent.com/b27757e11d8687dc846b016e0fac80a544e7b645/68747470733a2f2f736f72656e626f756d612e6769746875622e696f2f696d616765732f5369616d6573655f6469616772616d5f322e706e67" />
 </p>
 
-### `summary`
+### [`vae`](./vae/)
+**Variational autoencoders**  
+A sample model architecture for a varational autoencoder trained on the MNIST dataset. The model is split into two components, the _encoder_ and the _decoder_. In this example, the two networks are decoupled such that we can feed values directly into the decoder network independently of the encoder network.
+
+[VAE demo](https://transcranial.github.io/keras-js/#/mnist-vae)
+
+<p align="center">
+    <img alt="Illustration of VAE results"
+         src="https://www.kaggleusercontent.com/kf/2737130/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..U3sz60Jsm1GqZA7dbirzLA.8uZhV_Xi0ReWOOmecyhS6unQJEI8wqP96_eTx6TJ9_8CVrUos3HdEGkewLmAB6tNAXNVDmmafpAGLUNdsIjQtFEdObcuNZIvIxQO967tBKGV69vZzlSLqPeuJR8_UT567hw7guMcfv3vcmFRMPWMXoItFJ-QytUVKdQL4_c6HpL87P8L-WmZOw6nz9rWHQj-.lN-RicFzlMmUdkkT9tqL9w/__results___files/__results___34_0.png" />
+</p>
+
+### [`mtl`](./mtl/)
+**Multi-task learning**  
+Quick proof-of-concept for multi-task learning, in which two different tasks share the same base convolutional network. This shared feature map then branches into two fully-connected network components to produce two sets of outputs. In the example, we train the model to predict the digit and colour classification independently. The convolutional network is trained across all tasks through the summation of individual loss functions.
+
+<p align="center">
+    <img alt="MTL: classification & regression"
+         src="https://leonardoaraujosantos.gitbooks.io/artificial-inteligence/content/more_images/LocalizationRegression2.png" />
+</p>
+
+Such architectures are commonly used for object localization tasks, in which both a classification and a regression task are being performed on the same network.
+
+### [`summary`](./summary/)
+**TensorFlow SummaryWriter and TensorBoard**  
 Reference code for using `tf.summary` methods, for visualization using TensorBoard. Some useful information that can be visualized are the model loss and accuracy over time, or the computation graph of the model itself. This can be helpful when running multiple experiments across various hyperparameters, such that you can easily [compare their performances in TensorBoard](https://github.com/tensorflow/tensorboard/blob/master/README.md#runs-comparing-different-executions-of-your-model). 
