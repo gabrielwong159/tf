@@ -1,10 +1,14 @@
 # Variational autoencoders
 Variational autoencoders (VAEs) are used as **generative models**, much like _generative adversarial networks_ (GANs). A [blog post by `kvfrans`](http://kvfrans.com/variational-autoencoders-explained/) describes the advantages that VAEs have over GANs.
 
+Autoencoders are unsupervised models, in which the input images are directly used for the computation of the loss function, and no additional labels are required. This allows for relatively cheaper methods of training a feature extractor, which can then be used to initialize a supervised model, for example, by removing the decoder network and replacing it with fully-connected and softmax layers for classification.
+
 ## Architecture
 VAEs have two primary components: an **encoder** and a **decoder**. The encoder functions is very much like a typical CNN, in which we obtain a vector representation of an image. This is done via feature extraction with convolutional layers, followed by fully-connected layers to obtain the vector. The decoder takes this particular vector representation, and attempts to re-construct the original image through upsampling.
 
 At this point we have built an autoencoder. However, this is less useful in which the model is only trained to reproduce the input image. In order to solve this, we constrain the encoded vector representation of each image, the _latent vectors_, to conform to a _unit Gaussian distribution_. Subsequently, by sampling vectors from the Gaussian distribution we can generate new images.
+
+Note that the dimensionality of the latent vectors is smaller than that of the feature map. This helps the model to extract the more important features.
 
 However, this produces a trade-off between the accuracy of the re-construction, and how closely the latent vectors match the target Gaussian distribution. As such, we train the model simultaneously on both tasks. _Binary cross-entropy_ between the generated image and the input image is used as the loss function for the images, while [_Kullback-Leibler divergence_](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence) is used as the loss function for the latent vectors. By minimizing the KL divergence between the latent vectors and samples from a true Gaussian distribution, we are able to allow the latent vectors to approximate our target Gaussian distribution.
 
