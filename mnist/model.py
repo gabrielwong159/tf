@@ -6,6 +6,7 @@ class MNIST(object):
     h, w, c = 28, 28, 1
     n_classes = 10
 
+
     def __init__(self):
         self.x = tf.placeholder(tf.float32, shape=[None, self.h, self.w, self.c])
         self.y = tf.placeholder(tf.int64, shape=[None])
