@@ -1,0 +1,235 @@
+# understanding fpn - https://medium.com/@jonathan_hui/understanding-feature-pyramid-networks-for-object-detection-fpn-45b227b9106c
+# tf implementation - https://github.com/yangxue0827/FPN_Tensorflow/blob/master/libs/rpn/build_rpn.py
+import numpy as np
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+import utils
+
+
+class RPN(object):
+    POS_ANCHOR_THRESH = 0.7
+    NEG_ANCHOR_THRESH = 0.1
+
+    h, w, c = 224, 224, 1
+
+    anchor_scales = [64, 32, 16, 8]
+    anchor_ratios = [0.5, 1., 2.]
+    backbone_shapes = np.array([
+        [7, 7],
+        [14, 14],
+        [28, 28],
+        [56, 56],
+    ])
+    feature_strides = [32, 16, 8, 4]
+
+
+    def __init__(self):
+        self.images = tf.placeholder(tf.float32, [1, self.h, self.w, self.c])
+        self.gt_boxes = tf.placeholder(tf.float32, [None, 4])
+
+        fpn = {}
+        fpn = self.build_conv_base(fpn)
+        fpn = self.build_pyramid(fpn)
+        cls_logits_all, bbox_logits_all = self.build_rpn(fpn)  # [batch, n_anchors, 2], [batch, n_anchors, 4]
+        self.cls_logits_all = cls_logits_all[0]  # [n_anchors, 2]
+        self.bbox_logits_all = bbox_logits_all[0]  # [n_anchors, 4]
+        
+        original_anchors = self.get_anchors()
+        # normalize to [0, 1]
+        gt_boxes = self.gt_boxes / 224
+        original_anchors = original_anchors / 224
+        
+        # [6000, 4], [6000], [6000]
+        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(original_anchors, gt_boxes)  
+        cls_loss = self.compute_class_loss(anchor_labels, self.cls_logits_all)
+        bbox_loss = self.compute_bbox_loss(anchors, anchor_labels, anchor_mappings, self.bbox_logits_all, gt_boxes)
+        self.loss = cls_loss + bbox_loss
+        
+        self.anchors = anchors * 224
+        self.mappings = anchor_mappings
+        self.labels = anchor_labels
+        
+        pred_anchors = self.apply_anchor_deltas(anchors=original_anchors, deltas=self.bbox_logits_all)
+        pred_scores = tf.reduce_max(tf.nn.softmax(self.cls_logits_all), axis=-1)
+        pred_indices = tf.image.non_max_suppression(pred_anchors, pred_scores, iou_threshold=0.3, max_output_size=100)
+        self.inference = tf.gather(pred_anchors, pred_indices, axis=0) * 224
+        
+        with tf.name_scope('summaries'):
+            tf.summary.scalar('cls_loss', cls_loss)
+            tf.summary.scalar('bbox_loss', bbox_loss)
+            tf.summary.scalar('total_loss', self.loss)
+        self.summaries = tf.summary.merge_all()
+        
+    def build_conv_base(self, fpn):  # VGG-16
+        net = slim.repeat(self.images, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+        net = slim.max_pool2d(net, [2, 2], scope='pool1')
+        fpn['C1'] = net
+
+        net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+        net = slim.max_pool2d(net, [2, 2], scope='pool2')
+        fpn['C2'] = net
+
+        net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+        net = slim.max_pool2d(net, [2, 2], scope='pool3')
+        fpn['C3'] = net
+
+        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+        net = slim.max_pool2d(net, [2, 2], scope='pool4')
+        fpn['C4'] = net
+
+        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+        net = slim.max_pool2d(net, [2, 2], scope='pool5')
+        fpn['C5'] = net
+        return fpn
+        
+    def build_pyramid(self, fpn):
+        fpn['P5'] = slim.conv2d(fpn['C5'], 256, [1, 1], scope='p5')
+        fpn['P6'] = slim.max_pool2d(fpn['P5'], [2, 2], stride=2, scope='p6')
+        
+        for i in range(4, 1, -1):
+            p, c = fpn[f'P{i+1}'], fpn[f'C{i}']
+            upsample_shape = tf.shape(c)
+            upsample = tf.image.resize_nearest_neighbor(p, [upsample_shape[1], upsample_shape[2]],
+                                                        name=f'P{i}_upsample')
+            c = slim.conv2d(c, 256, [1, 1], scope=f'P{i}_reduce_dimension')
+            p = upsample + c
+            p = slim.conv2d(p, 256, [3, 3], scope=f'P{i}')
+            fpn[f'P{i}'] = p
+        return fpn
+
+    def rpn_fc(self, fpn, layer_name):
+        net = slim.conv2d(fpn[layer_name], 512, [3, 3], scope=f'conv_rpn_{layer_name}')
+
+        n_anchors = len(self.anchor_scales) * len(self.anchor_ratios)
+        # {bg, fg}
+        rpn_cls = slim.conv2d(net, n_anchors * 2, [1, 1], activation_fn=None, scope=f'fc_cls_{layer_name}')
+        cls_logits = tf.reshape(rpn_cls, [tf.shape(rpn_cls)[0], -1, 2])  # [N, h, w, anchors*2] -> [N, anchors, 2]
+        # [dy, dx, log(dh), log(dw)]
+        rpn_box = slim.conv2d(net, n_anchors * 4, [1, 1], activation_fn=None, scope=f'fc_box_{layer_name}')
+        bbox = tf.reshape(rpn_box, [tf.shape(rpn_box)[0], -1, 4])  # [N, h, w, anchors*4] -> [N, anchors, 4]
+        return cls_logits, bbox
+    
+    def build_rpn(self, fpn):
+        layers_outputs = [self.rpn_fc(fpn, layer_name) for layer_name in ['P5', 'P4', 'P3', 'P2']]
+        cls_logits_all, bbox_logits_all = zip(*layers_outputs)
+        cls_logits_all = tf.concat(cls_logits_all, axis=1)
+        bbox_logits_all = tf.concat(bbox_logits_all, axis=1)
+        return cls_logits_all, bbox_logits_all
+    
+    def get_anchors(self):
+        # create anchors
+        anchors = [utils.generate_anchors(self.anchor_scales, self.anchor_ratios, shape, feature_stride=stride, anchor_stride=1) 
+                       for shape, stride in zip(self.backbone_shapes, self.feature_strides)]
+        anchors = np.concatenate(anchors, axis=0)
+        # anchors = utils.norm_boxes(anchors, shape=np.array([224, 224]))
+        anchors = tf.constant(anchors, tf.float32)  # [n_anchors, 4]
+        return anchors
+        
+    def subsample_anchors(self, anchors, gt_boxes):
+        # take top-n anchors by scores
+        anchor_scores = self.cls_logits_all[:, 1]  # [n_anchors]
+        pre_nms_limit = tf.minimum(6000, tf.shape(anchors)[0])
+        top_k_idx = tf.nn.top_k(anchor_scores, k=pre_nms_limit).indices
+        anchors = tf.gather(anchors, top_k_idx)
+        anchor_scores = tf.gather(anchor_scores, top_k_idx)
+
+        # compute ious for anchors against given ground truth boxes
+        ious = self.compute_ious(anchors, gt_boxes)  # [n_anchors, n_gt_boxes]
+        max_iou_per_anchor = tf.reduce_max(ious, axis=1)
+        max_iou_per_gt_box = tf.reduce_max(ious, axis=0)
+
+        labels = tf.zeros(shape=[tf.shape(anchors)[0]], dtype=tf.float32)
+        mappings = tf.argmax(ious, axis=1)
+
+        pos1 = max_iou_per_anchor >= self.POS_ANCHOR_THRESH
+        pos2 = tf.reduce_sum(tf.cast(tf.equal(ious, max_iou_per_gt_box), tf.float32), axis=1)  # anchors with largest iou per gt box
+        pos = pos1 | tf.cast(pos2, tf.bool)
+        labels += tf.cast(pos, tf.float32)
+
+        neg = max_iou_per_anchor < self.NEG_ANCHOR_THRESH
+        labels -= tf.cast(neg, tf.float32)
+        return anchors, mappings, labels
+    
+    def compute_class_loss(self, anchor_labels, cls_logits):
+        anchor_classes = tf.cast(tf.equal(anchor_labels, 1), tf.int64)  # map {-1, 0}/+1 to 0/1
+
+        pos_indices = tf.where(tf.equal(anchor_labels, 1))[:, 0]
+        # sub-sample number of negative anchors
+        n_neg = tf.reduce_sum(anchor_classes) * 2
+        neg_indices = tf.where(tf.equal(anchor_labels, -1))[:, 0]
+        neg_indices = tf.random_shuffle(neg_indices)[:n_neg]
+        indices = tf.concat([pos_indices, neg_indices], axis=0)
+        
+        anchor_classes = tf.gather(anchor_classes, indices)
+        cls_logits = tf.gather(cls_logits, indices)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=anchor_classes, logits=cls_logits)
+        loss = tf.maximum(loss, 0.0)
+        return tf.reduce_mean(loss)
+        
+    def compute_bbox_loss(self, anchors, anchor_labels, anchor_mappings, bbox_logits, gt_boxes):
+        indices = tf.where(tf.equal(anchor_labels, 1))  # only positive anchors
+
+        anchors = tf.gather_nd(anchors, indices)
+        bbox_logits = tf.gather_nd(bbox_logits, indices)
+        bbox = self.apply_anchor_deltas(anchors, bbox_logits)
+
+        target_bbox = tf.map_fn(lambda idx: gt_boxes[idx], anchor_mappings, dtype=tf.float32)
+        target_bbox = tf.gather_nd(target_bbox, indices)
+
+        loss = self.smooth_l1_loss(target_bbox, bbox)
+        loss = tf.maximum(loss, 0.0)
+        return tf.reduce_mean(loss)
+        
+    def apply_anchor_deltas(self, anchors, deltas):
+        """
+            anchors: [N, (y1, x1, y2, x2)]
+            deltas: [N, (dy, dx, log(dh), log(dw)]
+        """
+        # convert to (y, x, h, w)
+        heights = anchors[:, 2] - anchors[:, 0]
+        widths = anchors[:, 3] - anchors[:, 1]
+        c_y = anchors[:, 0] + 0.5 * heights
+        c_x = anchors[:, 1] + 0.5 * widths
+        # apply the deltas
+        c_y = c_y + deltas[:, 0] * heights
+        c_x = c_x + deltas[:, 1] * widths
+        heights = heights * tf.exp(deltas[:, 2])
+        widths = widths * tf.exp(deltas[:, 3])
+        # convert back to (y1, x1, y2, x2)
+        y1 = c_y - 0.5 * heights
+        x1 = c_x - 0.5 * widths
+        y2 = y1 + heights
+        x2 = x1 + widths
+        return tf.stack([y1, x1, y2, x2], axis=1)
+    
+    def compute_ious(self, anchors, gt_boxes):
+        """
+            anchors: [N, 4] - (y1, x1, y2, x2)
+            gt_boxes: [M, 4] - (y1, x1, y2, x2)
+        """
+        a_y1, a_x1, a_y2, a_x2 = tf.split(anchors, 4, axis=1)  # a_y1 - [N, 1]
+        gt_y1, gt_x1, gt_y2, gt_x2 = tf.unstack(gt_boxes, axis=1)  # gt_y1 - [M,]
+        a_area = (a_x2 - a_x1) * (a_y2 - a_y1)
+        gt_area = (gt_x2 - gt_x1) * (gt_y2 - gt_y1)
+        
+        y1 = tf.maximum(a_y1, gt_y1)
+        y2 = tf.minimum(a_y2, gt_y2)
+        x1 = tf.maximum(a_x1, gt_x1)
+        x2 = tf.minimum(a_x2, gt_x2)
+
+        intersection = tf.maximum(0., x2 - x1) * tf.maximum(0., y2 - y1)
+        union = a_area + gt_area - intersection
+        return intersection / union
+        
+    def smooth_l1_loss(self, y_true, y_pred):
+        """
+            y_true, y_pred: 2-D vector, [N, 4]
+        """
+        diff = tf.abs(y_true - y_pred)
+        less_than_one = tf.cast(diff < 1.0, tf.float32)
+        loss = (less_than_one * 0.5 * diff**2) + (1 - less_than_one) * (diff - 0.5)
+        return loss
+
+
+if __name__ == '__main__':
+    RPN()
