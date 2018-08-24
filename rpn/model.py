@@ -24,27 +24,26 @@ class RPN(object):
 
 
     def __init__(self):
-        self.images = tf.placeholder(tf.float32, [1, self.h, self.w, self.c])
-        self.gt_boxes = tf.placeholder(tf.float32, [None, 4])  # boxes should be normalized
+        self.images = tf.placeholder(tf.float32, [None, self.h, self.w, self.c])
+        self.gt_boxes = tf.placeholder(tf.float32, [None, None, 4])  # boxes should be normalized
 
         fpn = FPN(self.images)
         cls_logits_all, bbox_logits_all = self.build_rpn(fpn.layers)  # [batch, n_anchors, 2], [batch, n_anchors, 4]
-        self.cls_logits_all = cls_logits_all[0]
-        self.bbox_logits_all = bbox_logits_all[0]
         
-        original_anchors = utils.generate_all_anchors(self.anchor_scales, self.anchor_ratios,
+        anchors = utils.generate_all_anchors(self.anchor_scales, self.anchor_ratios,
                                                   self.backbone_shapes, self.feature_strides,
                                                   anchor_stride=1, image_shape=[self.h, self.w])
-        original_anchors = tf.constant(original_anchors, dtype=tf.float32)
-
-        # [6000, 4], [6000], [6000]
-        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(original_anchors, self.gt_boxes)  
-        cls_loss = self.compute_class_loss(anchor_labels, self.cls_logits_all)
-        bbox_loss = self.compute_bbox_loss(anchors, anchor_labels, anchor_mappings, self.bbox_logits_all, self.gt_boxes)
+        self.anchors = tf.constant(anchors, dtype=tf.float32)
+        
+        cls_losses, bbox_losses = tf.map_fn(self.compute_loss, [self.gt_boxes, cls_logits_all, bbox_logits_all],
+                                            dtype=(tf.float32, tf.float32))
+        
+        cls_loss = tf.reduce_mean(cls_losses)
+        bbox_loss = tf.reduce_mean(bbox_losses)
         self.loss = cls_loss + bbox_loss
         
-        pred_anchors = utils.apply_anchor_deltas(anchors=original_anchors, deltas=self.bbox_logits_all)
-        pred_scores = tf.reduce_max(tf.nn.softmax(self.cls_logits_all), axis=-1)
+        pred_anchors = utils.apply_anchor_deltas(anchors=self.anchors, deltas=bbox_logits_all[0])
+        pred_scores = tf.reduce_max(tf.nn.softmax(cls_logits_all[0]), axis=-1)
         pred_indices = tf.image.non_max_suppression(pred_anchors, pred_scores, iou_threshold=0.3, max_output_size=100)
         self.inference = tf.gather(pred_anchors, pred_indices, axis=0) * 224
         
@@ -54,7 +53,8 @@ class RPN(object):
             tf.summary.scalar('total_loss', self.loss)
         self.summaries = tf.summary.merge_all()
         
-        self.anchors = anchors * 224
+        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(self.anchors, self.gt_boxes[0], cls_logits_all[0])
+        self.anchors = utils.denorm_boxes(anchors, [self.h, self.w])
         self.mappings = anchor_mappings
         self.labels = anchor_labels
         
@@ -76,10 +76,18 @@ class RPN(object):
         cls_logits_all = tf.concat(cls_logits_all, axis=1)
         bbox_logits_all = tf.concat(bbox_logits_all, axis=1)
         return cls_logits_all, bbox_logits_all
+    
+    def compute_loss(self, args):
+        gt_boxes, cls_logits, bbox_logits = args  # [n_gt_boxes, 4], [n_anchors, 2], [n_anchors, 4]
+        # [6000, 4], [6000], [6000]
+        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(self.anchors, gt_boxes, cls_logits)
+        cls_loss = self.compute_class_loss(anchor_labels, cls_logits)
+        bbox_loss = self.compute_bbox_loss(anchors, anchor_labels, anchor_mappings, gt_boxes, bbox_logits)
+        return cls_loss, bbox_loss
         
-    def subsample_anchors(self, anchors, gt_boxes):
+    def subsample_anchors(self, anchors, gt_boxes, cls_logits):
         # take top-n anchors by scores
-        anchor_scores = self.cls_logits_all[:, 1]  # [n_anchors]
+        anchor_scores = cls_logits[:, 1]  # [n_anchors]
         pre_nms_limit = tf.minimum(6000, tf.shape(anchors)[0])
         top_k_idx = tf.nn.top_k(anchor_scores, k=pre_nms_limit).indices
         anchors = tf.gather(anchors, top_k_idx)
@@ -101,7 +109,7 @@ class RPN(object):
         neg = max_iou_per_anchor < self.NEG_ANCHOR_THRESH
         labels -= tf.cast(neg, tf.float32)
         return anchors, mappings, labels
-    
+
     def compute_class_loss(self, anchor_labels, cls_logits):
         anchor_classes = tf.cast(tf.equal(anchor_labels, 1), tf.int64)  # map {-1, 0}/+1 to 0/1
 
@@ -118,7 +126,7 @@ class RPN(object):
         loss = tf.maximum(loss, 0.0)
         return tf.reduce_mean(loss)
         
-    def compute_bbox_loss(self, anchors, anchor_labels, anchor_mappings, bbox_logits, gt_boxes):
+    def compute_bbox_loss(self, anchors, anchor_labels, anchor_mappings, gt_boxes, bbox_logits):
         indices = tf.where(tf.equal(anchor_labels, 1))  # only positive anchors
 
         anchors = tf.gather_nd(anchors, indices)
