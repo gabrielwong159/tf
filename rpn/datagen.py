@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
+import utils
+from model import RPN
 
 np.random.seed(1)
 tf.set_random_seed(1)
@@ -36,4 +38,5 @@ def generate_image(train=True):
     n_crops = np.random.randint(1, 5)
     gt_cls, gt_boxes = zip(*[add_crop(image, train) for i in range(n_crops)])
     gt_cls, gt_boxes = map(np.array, (gt_cls, gt_boxes))
+    gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
     return image, gt_cls, gt_boxes
