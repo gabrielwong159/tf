@@ -2,13 +2,13 @@ import numpy as np
 import tensorflow as tf
 import cv2
 from tqdm import tqdm, trange
-from datagen import generate_image
+from datagen import generate_batch
 from model import RPN
 
-learning_rate = 1e-5
+learning_rate = 1e-3
 momentum = 0.9
-batch_size = 1
-n_iterations = 1_000_000
+batch_size = 32
+n_iterations = 70_000
 model_path = 'model/rpn/model'
 
 
@@ -26,9 +26,9 @@ def train():
         sess.run(tf.global_variables_initializer())
         
         for i in trange(n_iterations):
-            image, gt_cls, gt_boxes = generate_image()
+            images, gt_cls, gt_boxes = generate_batch(batch_size)
             _, loss, summaries = sess.run([train_step, model.loss, model.summaries], feed_dict={
-                model.images: image.reshape([1, 224, 224, 1]),
+                model.images: images,
                 model.gt_boxes: gt_boxes,
             })
             summary_writer.add_summary(summaries, i)

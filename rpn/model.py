@@ -53,7 +53,12 @@ class RPN(object):
             tf.summary.scalar('total_loss', self.loss)
         self.summaries = tf.summary.merge_all()
         
-        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(self.anchors, self.gt_boxes[0], cls_logits_all[0])
+        # remove gt_boxes used for padding
+        gt_boxes = self.gt_boxes[0]
+        is_valid = tf.reduce_any(tf.not_equal(gt_boxes, -1), axis=-1)
+        indices = tf.where(is_valid)[0]
+        gt_boxes = tf.gather(gt_boxes, indices)
+        anchors, anchor_mappings, anchor_labels = self.subsample_anchors(self.anchors, gt_boxes, cls_logits_all[0])
         self.anchors = utils.denorm_boxes(anchors, [self.h, self.w])
         self.mappings = anchor_mappings
         self.labels = anchor_labels
@@ -79,6 +84,11 @@ class RPN(object):
     
     def compute_loss(self, args):
         gt_boxes, cls_logits, bbox_logits = args  # [n_gt_boxes, 4], [n_anchors, 2], [n_anchors, 4]
+        # remove gt_boxes used for padding
+        is_valid = tf.reduce_any(tf.not_equal(gt_boxes, -1), axis=-1)
+        indices = tf.where(is_valid)[0]
+        gt_boxes = tf.gather(gt_boxes, indices)
+        
         # [6000, 4], [6000], [6000]
         anchors, anchor_mappings, anchor_labels = self.subsample_anchors(self.anchors, gt_boxes, cls_logits)
         cls_loss = self.compute_class_loss(anchor_labels, cls_logits)
@@ -181,7 +191,7 @@ class FPN(object):
 
     def build_pyramid(self, layers):
         layers['P5'] = slim.conv2d(layers['C5'], 256, [1, 1], scope='p5')
-        layers['P6'] = slim.max_pool2d(layers['P5'], [2, 2], stride=2, scope='p6')
+        # layers['P6'] = slim.max_pool2d(layers['P5'], [2, 2], stride=2, scope='p6')
 
         for i in range(4, 1, -1):
             p, c = layers[f'P{i+1}'], layers[f'C{i}']

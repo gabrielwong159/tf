@@ -9,6 +9,7 @@ np.random.seed(1)
 tf.set_random_seed(1)
 
 mnist = input_data.read_data_sets('data/', one_hot=False)
+max_crops = 4
 
 
 def make_crop(image):
@@ -29,14 +30,26 @@ def add_crop(image, train):
     y1, x1, y2, x2 = make_crop(image)
     crop = cv2.resize(crop, (x2 - x1, y2-y1))
 
-    image[y1:y2, x1:x2] = crop
+    image[y1:y2, x1:x2] = cv2.bitwise_or(image[y1:y2, x1:x2], crop)
     return int(label), [y1, x1, y2, x2]
 
 
-def generate_image(train=True):
-    image = np.zeros([224, 224], np.float32)
-    n_crops = np.random.randint(1, 5)
-    gt_cls, gt_boxes = zip(*[add_crop(image, train) for i in range(n_crops)])
+def generate_image(train):
+    image = np.zeros([RPN.h, RPN.w], np.float32)
+    
+    n_crops = np.random.randint(1, max_crops + 1)
+    gt_cls, gt_boxes = map(list, zip(*[add_crop(image, train) for i in range(n_crops)]))
+    for i in range(max_crops - n_crops):
+        gt_boxes.append([-1] * 4)  # pad up to max length
+    
     gt_cls, gt_boxes = map(np.array, (gt_cls, gt_boxes))
     gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
     return image, gt_cls, gt_boxes
+
+
+def generate_batch(batch_size, train=True):
+    batch = zip(*[generate_image(train) for _ in range(batch_size)])
+    images, gt_cls, gt_boxes = map(np.array, batch)
+    
+    images = np.reshape(images, [-1, RPN.h, RPN.w, RPN.c])
+    return images, gt_cls, gt_boxes
