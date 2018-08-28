@@ -54,8 +54,8 @@ def generate_all_anchors(scales, ratios, backbone_shapes,
     Returns:
         anchors - [N, [y1, x1, y2, x2]]
     """
-    anchors = [generate_anchors(scales, ratios, shape, stride, anchor_stride)
-               for shape, stride in zip(backbone_shapes, feature_strides)]
+    anchors = [generate_anchors(scale, ratios, shape, stride, anchor_stride)
+               for scale, shape, stride in zip(scales, backbone_shapes, feature_strides)]
     anchors = np.concatenate(anchors, axis=0)
     anchors = norm_boxes(anchors, image_shape)
     return anchors
@@ -153,6 +153,7 @@ def denorm_boxes(boxes, shape):
     Returns:
         [..., (y1, x1, y2, x2)] in pixel coordinates
     """
+    shape = tf.constant(shape)
     h, w = tf.split(tf.cast(shape, tf.float32), 2)
     scale = tf.concat([h, w, h, w], axis=-1) - tf.constant(1.0)
     shift = tf.constant([0., 0., 1., 1.])

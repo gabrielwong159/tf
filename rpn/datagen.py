@@ -38,12 +38,11 @@ def generate_image(train):
     image = np.zeros([RPN.h, RPN.w], np.float32)
     
     n_crops = np.random.randint(1, max_crops + 1)
-    gt_cls, gt_boxes = map(list, zip(*[add_crop(image, train) for i in range(n_crops)]))
-    for i in range(max_crops - n_crops):
-        gt_boxes.append([-1] * 4)  # pad up to max length
-    
-    gt_cls, gt_boxes = map(np.array, (gt_cls, gt_boxes))
+    gt_cls, gt_boxes = map(np.array, zip(*[add_crop(image, train) for i in range(n_crops)]))
     gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
+    
+    padding_boxes = -np.ones([max_crops - n_crops, 4], np.float64)
+    gt_boxes = np.concatenate([gt_boxes, padding_boxes], axis=0)
     return image, gt_cls, gt_boxes
 
 
