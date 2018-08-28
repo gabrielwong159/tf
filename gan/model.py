@@ -42,7 +42,10 @@ class GAN(object):
                 net = slim.conv2d_transpose(net, 64, scope='conv3')
                 net = slim.batch_norm(net, scope='bn3')
                 
-                net = slim.conv2d_transpose(net, 1, activation_fn=None, scope='conv4')
+                net = slim.conv2d_transpose(net, 32, scope='conv4')
+                net = slim.batch_norm(net, scope='bn4')
+                
+                net = slim.conv2d_transpose(net, 1, stride=1, activation_fn=None, scope='conv5')
         return net
 
     def discriminator(self, inputs):
