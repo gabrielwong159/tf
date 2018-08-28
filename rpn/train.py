@@ -32,6 +32,7 @@ def train():
                 model.gt_boxes: gt_boxes,
             })
             summary_writer.add_summary(summaries, i)
+            assert not np.isnan(loss), 'loss == NaN'
             
             if i % 100 == 0:
                 tqdm.write(f'step {i}: loss {loss}')
