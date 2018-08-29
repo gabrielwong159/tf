@@ -39,10 +39,10 @@ def generate_image(train):
     
     n_crops = np.random.randint(1, max_crops + 1)
     gt_cls, gt_boxes = map(np.array, zip(*[add_crop(image, train) for i in range(n_crops)]))
-    gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
     
     padding_boxes = -np.ones([max_crops - n_crops, 4], np.float64)
     gt_boxes = np.concatenate([gt_boxes, padding_boxes], axis=0)
+    gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
     return image, gt_cls, gt_boxes
 
 
@@ -50,5 +50,5 @@ def generate_batch(batch_size, train=True):
     batch = zip(*[generate_image(train) for _ in range(batch_size)])
     images, gt_cls, gt_boxes = map(np.array, batch)
     
-    images = np.reshape(images, [-1, RPN.h, RPN.w, RPN.c])
+    images = images.reshape(-1, RPN.h, RPN.w, 1)
     return images, gt_cls, gt_boxes

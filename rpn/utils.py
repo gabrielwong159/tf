@@ -81,41 +81,31 @@ def compute_ious(anchors, gt_boxes):
     return intersection / union
 
 
-def apply_anchor_deltas(anchors, deltas):
+def apply_anchor_deltas(boxes, deltas):
     """
-        anchors: [N, (y1, x1, y2, x2)]
-        deltas: [N, (dy, dx, log(dh), log(dw)]
+    Applies the given deltas to the given boxes.
+    
+    Parameters:
+        anchors: [N, (y1, x1, y2, x2)] boxes to update
+        deltas: [N, (dy, dx, log(dh), log(dw))] refinements to apply
     """
-    # convert to (y, x, h, w)
-    heights = anchors[:, 2] - anchors[:, 0]
-    widths = anchors[:, 3] - anchors[:, 1]
-    c_y = anchors[:, 0] + 0.5 * heights
-    c_x = anchors[:, 1] + 0.5 * widths
-    # apply the deltas
-    c_y = c_y + deltas[:, 0] * heights
-    c_x = c_x + deltas[:, 1] * widths
-    heights = heights * tf.exp(deltas[:, 2])
-    widths = widths * tf.exp(deltas[:, 3])
-    # convert back to (y1, x1, y2, x2)
-    y1 = c_y - 0.5 * heights
-    x1 = c_x - 0.5 * widths
-    y2 = y1 + heights
-    x2 = x1 + widths
-    return tf.stack([y1, x1, y2, x2], axis=1)
-
-
-def clip_anchors(anchors):
-    """
-        anchors: [N, (y1, x1, y2, x2)]
-        window: values are normalized to [0, 1), hence [0., 0., 1., 1.]
-    """
-    def _clip(x):
-        return np.maximum(np.minimum(x, 1.), 0.)
-
-    y1, x1, y2, x2 = map(_clip, np.split(anchors, 4, axis=1))
-    clipped = np.concat([y1, x1, y2, x2], axis=1)
-    clipped.set_shape((clipped.shape[0], 4))
-    return clipped
+    # Convert to (y, x, h, w)
+    height = boxes[:, 2] - boxes[:, 0]
+    width = boxes[:, 3] - boxes[:, 1]
+    center_y = boxes[:, 0] + 0.5 * height
+    center_x = boxes[:, 1] + 0.5 * width
+    # Apply deltas
+    center_y += deltas[:, 0] * height
+    center_x += deltas[:, 1] * width
+    height *= tf.exp(deltas[:, 2])
+    width *= tf.exp(deltas[:, 3])
+    # Convert back to (y1, x1, y2, x2)
+    y1 = center_y - 0.5 * height
+    x1 = center_x - 0.5 * width
+    y2 = y1 + height
+    x2 = x1 + width
+    result = tf.stack([y1, x1, y2, x2], axis=1)
+    return result
 
 
 def norm_boxes(boxes, shape):
@@ -123,20 +113,19 @@ def norm_boxes(boxes, shape):
     Converts boxes from pixel coordinates to normalized coordinates.
     
     Parameters:
-        boxes: [..., (y1, x1, y2, x2)] in pixel coordinates
-        shape: [..., (height, width)] in pixels
+        boxes: [N, (y1, x1, y2, x2)] in pixel coordinates
+        shape: [height, width] in pixels
 
     Note: In pixel coordinates (y2, x2) is outside the box. But in normalized
     coordinates it's inside the box.
 
     Returns:
-        [..., (y1, x1, y2, x2)] in normalized coordinates
+        [N, (y1, x1, y2, x2)] in normalized coordinates
     """
-    shape = np.array(shape)
-    h, w = np.split(shape.astype(np.float32), 2)
-    scale = np.concatenate([h, w, h, w], axis=-1) - 1.0
-    shift = np.array([0., 0., 1., 1.])
-    return np.divide(boxes - shift, scale)
+    h, w = shape
+    scale = np.array([h-1, w-1, h-1, w-1])
+    shift = np.array([0, 0, 1, 1])
+    return ((boxes - shift) / scale).astype(np.float32)
 
 
 def denorm_boxes(boxes, shape):
@@ -144,17 +133,16 @@ def denorm_boxes(boxes, shape):
     Converts boxes from normalized coordinates to pixel coordinates.
     
     Parameters:
-        boxes: [..., (y1, x1, y2, x2)] in normalized coordinates
-        shape: [..., (height, width)] in pixels
+        boxes: [N, (y1, x1, y2, x2)] in pixel coordinates
+        shape: [height, width] in pixels
 
     Note: In pixel coordinates (y2, x2) is outside the box. But in normalized
     coordinates it's inside the box.
 
     Returns:
-        [..., (y1, x1, y2, x2)] in pixel coordinates
+        [N, (y1, x1, y2, x2)] in pixel coordinates
     """
-    shape = tf.constant(shape)
-    h, w = tf.split(tf.cast(shape, tf.float32), 2)
-    scale = tf.concat([h, w, h, w], axis=-1) - tf.constant(1.0)
-    shift = tf.constant([0., 0., 1., 1.])
-    return tf.cast(tf.round(tf.multiply(boxes, scale) + shift), tf.int32)
+    h, w = shape
+    scale = np.array([h - 1, w - 1, h - 1, w - 1])
+    shift = np.array([0, 0, 1, 1])
+    return np.around(np.multiply(boxes, scale) + shift).astype(np.int32)
