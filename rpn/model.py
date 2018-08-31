@@ -26,7 +26,7 @@ class RPN(object):
     def __init__(self):
         self.images = tf.placeholder(tf.float32, [None, self.h, self.w, self.c])
         self.gt_boxes = tf.placeholder(tf.float32, [None, None, 4])
-
+        
         fpn = FPN(self.images)
         cls_logits, bbox_logits = self.build_rpn(fpn.layers)  # [batch, n_anchors, 2], [batch, n_anchors, 4]
         
@@ -43,12 +43,27 @@ class RPN(object):
         self.loss = cls_loss + bbox_loss
 
         with tf.name_scope('summaries'):
+            for layer_name in ['P5', 'P4', 'P3', 'P2']:
+                tf.summary.histogram(layer_name, fpn.layers[layer_name])
             tf.summary.histogram('cls_logits', cls_logits)
             tf.summary.histogram('bbox_logits', bbox_logits)
             tf.summary.scalar('cls_loss', cls_loss)
             tf.summary.scalar('bbox_loss', bbox_loss)
             tf.summary.scalar('total_loss', self.loss)
         self.summaries = tf.summary.merge_all()
+        
+        apply_all_deltas = lambda logits: utils.apply_anchor_deltas(self.anchors, logits)
+        self.bboxes = tf.map_fn(apply_all_deltas, bbox_logits, dtype=tf.float32)
+        self.cls_probs = tf.nn.softmax(cls_logits)
+        
+        
+        # remove gt_boxes used for padding
+        is_valid = tf.reduce_all(self.gt_boxes[0] >= 0, axis=-1)
+        indices = tf.where(is_valid)[:, 0]
+        gt_boxes = tf.gather(self.gt_boxes[0], indices)
+        anchors, labels, mappings = self.compute_anchor_labels(self.anchors, gt_boxes, cls_logits[0])
+        bboxes = utils.apply_anchor_deltas(self.anchors, bbox_logits[0])
+        self.test = (anchors, labels, mappings, bboxes)
         
     def rpn_fc(self, fpn, layer_name):
         net = slim.conv2d(fpn[layer_name], 512, [3, 3], scope=f'conv_rpn_{layer_name}')
@@ -159,25 +174,26 @@ class FPN(object):
         self.layers = layers
 
     def build_conv_base(self, layers):  # VGG-16
-        net = slim.repeat(layers['inp'], 2, slim.conv2d, 64, [3, 3], scope='conv1')
-        net = slim.max_pool2d(net, [2, 2], scope='pool1')
-        layers['C1'] = net
+        with tf.variable_scope('vgg_16'):
+            net = slim.repeat(layers['inp'], 2, slim.conv2d, 64, [3, 3], scope='conv1')
+            net = slim.max_pool2d(net, [2, 2], scope='pool1')
+            layers['C1'] = net
 
-        net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-        net = slim.max_pool2d(net, [2, 2], scope='pool2')
-        layers['C2'] = net
+            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+            net = slim.max_pool2d(net, [2, 2], scope='pool2')
+            layers['C2'] = net
 
-        net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-        net = slim.max_pool2d(net, [2, 2], scope='pool3')
-        layers['C3'] = net
+            net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+            net = slim.max_pool2d(net, [2, 2], scope='pool3')
+            layers['C3'] = net
 
-        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-        net = slim.max_pool2d(net, [2, 2], scope='pool4')
-        layers['C4'] = net
+            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+            net = slim.max_pool2d(net, [2, 2], scope='pool4')
+            layers['C4'] = net
 
-        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-        net = slim.max_pool2d(net, [2, 2], scope='pool5')
-        layers['C5'] = net
+            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+            net = slim.max_pool2d(net, [2, 2], scope='pool5')
+            layers['C5'] = net
         return layers
 
     def build_pyramid(self, layers):

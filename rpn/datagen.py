@@ -8,7 +8,8 @@ from model import RPN
 np.random.seed(1)
 tf.set_random_seed(1)
 
-mnist = input_data.read_data_sets('data/', one_hot=False)
+dtype = np.float32
+mnist = input_data.read_data_sets('data/', one_hot=False, dtype=dtype)
 max_crops = 4
 
 
@@ -25,7 +26,7 @@ def add_crop(image, train):
         crop, label = mnist.train.next_batch(1)
     else:
         crop, label = mnist.test.next_batch(1)
-    crop = crop.reshape([28, 28])
+    crop = crop.reshape(28, 28)
 
     y1, x1, y2, x2 = make_crop(image)
     crop = cv2.resize(crop, (x2 - x1, y2-y1))
@@ -35,7 +36,7 @@ def add_crop(image, train):
 
 
 def generate_image(train):
-    image = np.zeros([RPN.h, RPN.w], np.float32)
+    image = np.zeros([RPN.h, RPN.w], dtype=dtype)
     
     n_crops = np.random.randint(1, max_crops + 1)
     gt_cls, gt_boxes = map(np.array, zip(*[add_crop(image, train) for i in range(n_crops)]))
@@ -50,5 +51,5 @@ def generate_batch(batch_size, train=True):
     batch = zip(*[generate_image(train) for _ in range(batch_size)])
     images, gt_cls, gt_boxes = map(np.array, batch)
     
-    images = images.reshape(-1, RPN.h, RPN.w, 1)
+    images = images.reshape(-1, RPN.h, RPN.w, RPN.c)
     return images, gt_cls, gt_boxes
