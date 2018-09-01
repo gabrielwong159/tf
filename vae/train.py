@@ -5,7 +5,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 from tqdm import tqdm, trange
 from model import VAE
 
-mnist = input_data.read_data_sets('data/')
+mnist = input_data.read_data_sets('data/', reshape=False)
 
 n_epochs = 16
 batch_size = 64
@@ -21,7 +21,7 @@ def train():
     saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        x = mnist.train.images.reshape([-1, 28, 28, 1])
+        x = mnist.train.images
         n_iters = int(np.ceil(len(x) / batch_size))
         
         for epoch in range(n_epochs):
@@ -35,7 +35,7 @@ def train():
 
             print(saver.save(sess, model_path))
             
-            test_image = mnist.test.images[:1].reshape([-1, 28, 28, 1])
+            test_image = mnist.test.images[:1]
             out = sess.run(model.out, feed_dict={model.x: test_image})
             out_image = np.squeeze(out[0]) * 255
             cv2.imwrite(f'samples/{epoch}_{int(loss)}.png', out_image)

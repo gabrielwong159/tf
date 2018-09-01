@@ -9,23 +9,10 @@ from tqdm import trange
 mnist = input_data.read_data_sets('data/', reshape=False)
 
 batch_size = 128
-n_epochs = 10
+n_epochs = 20
 model_path = 'model/gan/model'
 
-# not ok
-# 2. having separate var list
-# 3. binary cross entropy with eps
 
-# maybe ok
-# 1. control dependencies <<<
-
-# ok
-# 1. batch norm decay
-# 2. regularization
-# 3. dimensionality of input noise
-# 4. bn after lrelu
-# 5. run both train steps on the same inputs
-            
 def train():
     model = GAN()
     
@@ -40,7 +27,6 @@ def train():
     saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, model_path)
         for epoch in trange(n_epochs):
             writer = tf.summary.FileWriter(f'summaries/{epoch}', sess.graph)
             

@@ -1,6 +1,3 @@
-# https://github.com/znxlwm/tensorflow-MNIST-GAN-DCGAN/blob/master/tensorflow_MNIST_DCGAN.py
-# https://github.com/ytakzk/Mnist-DCGAN-for-Tensorflow/blob/master/dcgan.ipynb
-# https://towardsdatascience.com/gan-introduction-and-implementation-part1-implement-a-simple-gan-in-tf-for-mnist-handwritten-de00a759ae5c
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 

@@ -8,7 +8,8 @@ A collection of computer vision tasks on TensorFlow that encompass various imple
 1. [`vgg`: VGG-16 net](#vgg)
 1. [`fcn`: Fully convolutional networks](#fcn)
 1. [`siamese`: Siamese CNNs](#siamese)
-1. [`vae`: Variational Autoencoder](#vae)
+1. [`vae`: Variational autoencoder](#vae)
+1. [`gan`: Generative adversarial networks](#gan)
 1. [`mtl`: Multi-task learning](#mtl)
 1. [`summary`: TensorFlow SummaryWriter and TensorBoard](#summary)
 
@@ -64,7 +65,18 @@ A sample model architecture for a varational autoencoder trained on the MNIST da
 
 <p align="center">
     <img alt="Illustration of VAE results"
-         src="https://www.kaggleusercontent.com/kf/2737130/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..U3sz60Jsm1GqZA7dbirzLA.8uZhV_Xi0ReWOOmecyhS6unQJEI8wqP96_eTx6TJ9_8CVrUos3HdEGkewLmAB6tNAXNVDmmafpAGLUNdsIjQtFEdObcuNZIvIxQO967tBKGV69vZzlSLqPeuJR8_UT567hw7guMcfv3vcmFRMPWMXoItFJ-QytUVKdQL4_c6HpL87P8L-WmZOw6nz9rWHQj-.lN-RicFzlMmUdkkT9tqL9w/__results___files/__results___34_0.png" />
+         src="https://camo.githubusercontent.com/cf171219165220a1a8d798e03d1e94ad8b479021/68747470733a2f2f7777772e6b6167676c6575736572636f6e74656e742e636f6d2f6b662f323733373133302f65794a68624763694f694a6b615849694c434a6c626d4d694f694a424d54493451304a444c5568544d6a5532496e302e2e5533737a36304a736d3147715a4137646269727a4c412e38755a68565f5869305265574f4f6d656379685336756e514a45493877715039365f65547836544a395f38435672556f7333486445476b65774c6d414236744e41584e56446d6d61667041474c554e6473496a51744645644f6263754e5a49764978514f39363774424b47563639765a7a6c534c715065754a52385f555435363768773767754d6366763376636d46524d50574d586f4974464a2d51797455564b64514c345f633648704c383750384c2d576d5a4f77366e7a39725748516a2d2e6c4e2d526963467a6c4d6d55646b6b543974714c39772f5f5f726573756c74735f5f5f66696c65732f5f5f726573756c74735f5f5f33345f302e706e67" />
+</p>
+
+### [`gan`](./gan/)
+**Generative adversarial networks**  
+Sample GAN for generating MNIST images. The model architecture consists of a _generator_, which takes in a random input vector and produces an image, and a _discriminator_, which attempts to distinguish between genuine and generated images.
+
+While GANs generally take longer to train, as compared to VAEs, the images produced are of a higher quality. GANs are thus the preferred network for synthesizing images.
+
+<p align="center">
+	<img alt="Overall architecture of GANs"
+		 src="https://skymind.ai/images/wiki/GANs.png" />
 </p>
 
 ### [`mtl`](./mtl/)

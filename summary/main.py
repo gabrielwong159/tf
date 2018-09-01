@@ -10,7 +10,7 @@ learning_rate = 1e-4
 batch_size = 50
 num_iterations = 5_000
 
-mnist = input_data.read_data_sets('data/', one_hot=False)
+mnist = input_data.read_data_sets('data/', one_hot=False, reshape=False)
 
 
 def variable_summaries(var):
@@ -54,10 +54,9 @@ def main():
         sess.run(tf.global_variables_initializer())
         
         for i in trange(num_iterations):
-            feed_shape = [-1, model.h, model.w, model.c]
             if i % 10 == 0:
                 summary = sess.run(merged_summaries, feed_dict={
-                    model.x: mnist.test.images.reshape(feed_shape),
+                    model.x: mnist.test.images,
                     model.y: mnist.test.labels,
                     model.keep_prob: 1.0,
                 })
@@ -65,7 +64,7 @@ def main():
             else:
                 x, y = mnist.train.next_batch(batch_size)
                 _, summary = sess.run([train_step, merged_summaries], feed_dict={
-                    model.x: x.reshape(feed_shape),
+                    model.x: x,
                     model.y: y,
                     model.keep_prob: 0.5,
                 })

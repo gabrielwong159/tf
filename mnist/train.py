@@ -9,7 +9,7 @@ num_iterations = 20_000
 batch_size = 50
 model_path = 'model/mnist/model'
 
-mnist = input_data.read_data_sets('data/', one_hot=False)
+mnist = input_data.read_data_sets('data/', one_hot=False, reshape=False)
 
 
 def train():
@@ -23,7 +23,6 @@ def train():
 
         for i in trange(num_iterations):
             x, y = mnist.train.next_batch(batch_size)
-            x = x.reshape([-1, model.h, model.w, model.c])
 
             if i % 100 == 0:
                 train_accuracy = sess.run(model.accuracy, feed_dict={

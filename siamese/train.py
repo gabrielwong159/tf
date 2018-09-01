@@ -4,7 +4,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 from tqdm import tqdm, trange
 from model_contrastive import Siamese
 
-mnist = input_data.read_data_sets('data/', one_hot=False)
+mnist = input_data.read_data_sets('data/', one_hot=False, reshape=False)
 
 h, w, c = 28, 28, 1
 batch_size = 128
@@ -25,10 +25,6 @@ def train():
         for i in trange(num_iterations):
             x1, y1 = mnist.train.next_batch(batch_size)
             x2, y2 = mnist.train.next_batch(batch_size)
-
-            x1 = np.reshape(x1, [-1, h, w, c])
-            x2 = np.reshape(x2, [-1, h, w, c])
-
             y_ = (y1 == y2).astype(np.float32)
             feed_dict = {
                 siamese.x1: x1,
