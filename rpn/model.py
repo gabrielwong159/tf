@@ -10,7 +10,7 @@ class RPN(object):
     POS_ANCHOR_THRESH = 0.7
     NEG_ANCHOR_THRESH = 0.1
 
-    h, w, c = 224, 224, 1
+    h, w, c = 224, 224, 3
 
     anchor_scales = [64, 32, 16, 8]
     anchor_ratios = [0.5, 1.0, 2.0]
@@ -40,13 +40,16 @@ class RPN(object):
                                             dtype=(tf.float32, tf.float32))
         cls_loss = tf.reduce_mean(cls_losses)
         bbox_loss = tf.reduce_mean(bbox_losses)
+        self.bbox_loss = bbox_loss
         self.loss = cls_loss + bbox_loss
 
         with tf.name_scope('summaries'):
+            tf.summary.histogram('input', self.images)
             for layer_name in ['P5', 'P4', 'P3', 'P2']:
                 tf.summary.histogram(layer_name, fpn.layers[layer_name])
             tf.summary.histogram('cls_logits', cls_logits)
             tf.summary.histogram('bbox_logits', bbox_logits)
+            tf.summary.histogram('cls_probs', tf.nn.softmax(cls_logits))
             tf.summary.scalar('cls_loss', cls_loss)
             tf.summary.scalar('bbox_loss', bbox_loss)
             tf.summary.scalar('total_loss', self.loss)
@@ -152,8 +155,8 @@ class RPN(object):
         target_bbox = tf.gather(gt_boxes, anchor_mappings)
         target_bbox = tf.gather(target_bbox, indices)
 
-        # loss = self.smooth_l1_loss(target_bbox, bbox)
-        # loss = tf.maximum(loss, 0.0)
+        loss = self.smooth_l1_loss(target_bbox, bbox)
+        loss = tf.maximum(loss, 0.0)
         loss = tf.abs(target_bbox - bbox)
         return tf.reduce_mean(loss)
         

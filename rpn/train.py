@@ -8,8 +8,9 @@ from model import RPN
 learning_rate = 5e-4
 momentum = 0.9
 batch_size = 32
-n_iterations = 70_000
-model_path = 'model/rpn/model'
+n_iterations = 100_000
+model_path = 'model/l1_loss/lr5e-4_batch32_iters100k/model'
+summaries_path = 'summaries/l1_loss'
 
 def train():
     model = RPN()
@@ -21,7 +22,7 @@ def train():
 
     saver = tf.train.Saver()
     with tf.Session() as sess:
-        summary_writer = tf.summary.FileWriter('summaries/normal', sess.graph)
+        summary_writer = tf.summary.FileWriter(summaries_path, sess.graph)
         sess.run(tf.global_variables_initializer())
         
         for i in trange(n_iterations):

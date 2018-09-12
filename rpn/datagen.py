@@ -44,6 +44,8 @@ def generate_image(train):
     padding_boxes = -np.ones([max_crops - n_crops, 4], np.float64)
     gt_boxes = np.concatenate([gt_boxes, padding_boxes], axis=0)
     gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
+    
+    image = cv2.merge([image] * 3)
     return image, gt_cls, gt_boxes
 
 
