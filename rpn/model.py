@@ -27,7 +27,7 @@ class RPN(object):
         self.images = tf.placeholder(tf.float32, [None, self.h, self.w, self.c])
         self.gt_boxes = tf.placeholder(tf.float32, [None, None, 4])
         
-        fpn = FPN(self.images)
+        fpn = FPN(self.images - 0.5)
         cls_logits, bbox_logits = self.build_rpn(fpn.layers)  # [batch, n_anchors, 2], [batch, n_anchors, 4]
         
         anchors = utils.generate_all_anchors(self.anchor_scales, self.anchor_ratios,
@@ -43,13 +43,17 @@ class RPN(object):
         self.bbox_loss = bbox_loss
         self.loss = cls_loss + bbox_loss
 
-        with tf.name_scope('summaries'):
-            tf.summary.histogram('input', self.images)
+        with tf.name_scope('inputs'):
+            tf.summary.histogram('images', self.images)
+            tf.summary.histogram('gt_boxes', self.gt_boxes)
+        with tf.name_scope('layers'):
             for layer_name in ['P5', 'P4', 'P3', 'P2']:
                 tf.summary.histogram(layer_name, fpn.layers[layer_name])
+        with tf.name_scope('outputs'):
             tf.summary.histogram('cls_logits', cls_logits)
             tf.summary.histogram('bbox_logits', bbox_logits)
             tf.summary.histogram('cls_probs', tf.nn.softmax(cls_logits))
+        with tf.name_scope('losses'):
             tf.summary.scalar('cls_loss', cls_loss)
             tf.summary.scalar('bbox_loss', bbox_loss)
             tf.summary.scalar('total_loss', self.loss)
