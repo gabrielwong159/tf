@@ -159,8 +159,6 @@ class RPN(object):
         target_bbox = tf.gather(gt_boxes, anchor_mappings)
         target_bbox = tf.gather(target_bbox, indices)
 
-        loss = self.smooth_l1_loss(target_bbox, bbox)
-        loss = tf.maximum(loss, 0.0)
         loss = tf.abs(target_bbox - bbox)
         return tf.reduce_mean(loss)
         
