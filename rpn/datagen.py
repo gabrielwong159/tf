@@ -22,6 +22,11 @@ def make_crop(image):
 
 
 def add_crop(image, train):
+    """
+    Return:
+        label: int value indicating image class
+        gt_box: Un-normalized bounding box coordinates in [y1, x1, y2, x2]
+    """
     if train:
         crop, label = mnist.train.next_batch(1)
     else:
@@ -36,6 +41,12 @@ def add_crop(image, train):
 
 
 def generate_image(train):
+    """
+    Return:
+        image: Image as np.ndarray
+        gt_cls: Array of classes of crops in [N,]
+        gt_boxes: Array of normalized bounding boxes for each crop in [N, (y1, x2, y2, x2)]
+    """
     image = np.zeros([RPN.h, RPN.w], dtype=dtype)
     
     n_crops = np.random.randint(1, max_crops + 1)
@@ -44,6 +55,8 @@ def generate_image(train):
     padding_boxes = -np.ones([max_crops - n_crops, 4], np.float64)
     gt_boxes = np.concatenate([gt_boxes, padding_boxes], axis=0)
     gt_boxes = utils.norm_boxes(gt_boxes, [RPN.h, RPN.w])
+    
+    image = cv2.merge([image] * 3)
     return image, gt_cls, gt_boxes
 
 
