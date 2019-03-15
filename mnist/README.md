@@ -18,7 +18,7 @@ The code here draws inspiration from the `GET STARTED` section of the TensorFlow
 * [MNIST for ML Beginners](https://www.tensorflow.org/versions/r1.0/get_started/mnist/beginners)
 * [Deep MNIST for Experts](https://www.tensorflow.org/versions/r1.0/get_started/mnist/pros)
 
-### [Tensorflow: The Confusing Parts (1)](https://jacobbuckman.com/post/tensorflow-the-confusing-parts-1/)
+### [TensorFlow: The Confusing Parts (1)](https://jacobbuckman.com/post/tensorflow-the-confusing-parts-1/)
 This is a particularly useful article when beginning TensorFlow, which helps the reader to understand the differences in TensorFlow better. Highly recommended read when starting out in TensorFlow.
 
 ### [TensorFlow-Slim](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim)
