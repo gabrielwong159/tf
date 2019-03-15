@@ -12,6 +12,7 @@ A collection of computer vision tasks on TensorFlow that encompass various imple
 1. [`gan`: Generative adversarial networks](#gan)
 1. [`mtl`: Multi-task learning](#mtl)
 1. [`summary`: TensorFlow SummaryWriter and TensorBoard](#summary)
+1. [`roi_pool`: ROI pooling](#roi_pool)
 
 
 ## Project details
@@ -37,7 +38,7 @@ TensorFlow-Slim implementation of the VGG-16 architecture. VGG-16 is often used 
 
 ### [`fcn`](./fcn/)
 **Fully convolutional networks**  
-Fully convolutional networks are typically used for _semantic segmentation_. The network architecture implemented here is from the paper titled `Fully convolutional networks for semantic segmentation`, in which _VGG-16_ is used as the base convolutional network.
+Fully convolutional networks are typically used for _semantic segmentation_. The network architecture implemented here is from the paper titled [_Fully convolutional networks for semantic segmentation_](https://arxiv.org/abs/1411.4038), in which _VGG-16_ is used as the base convolutional network.
 
 <p align="center">
     <img alt="FCN-8s model architecture"
@@ -65,7 +66,7 @@ A sample model architecture for a varational autoencoder trained on the MNIST da
 
 <p align="center">
     <img alt="Illustration of VAE results"
-         src="https://camo.githubusercontent.com/cf171219165220a1a8d798e03d1e94ad8b479021/68747470733a2f2f7777772e6b6167676c6575736572636f6e74656e742e636f6d2f6b662f323733373133302f65794a68624763694f694a6b615849694c434a6c626d4d694f694a424d54493451304a444c5568544d6a5532496e302e2e5533737a36304a736d3147715a4137646269727a4c412e38755a68565f5869305265574f4f6d656379685336756e514a45493877715039365f65547836544a395f38435672556f7333486445476b65774c6d414236744e41584e56446d6d61667041474c554e6473496a51744645644f6263754e5a49764978514f39363774424b47563639765a7a6c534c715065754a52385f555435363768773767754d6366763376636d46524d50574d586f4974464a2d51797455564b64514c345f633648704c383750384c2d576d5a4f77366e7a39725748516a2d2e6c4e2d526963467a6c4d6d55646b6b543974714c39772f5f5f726573756c74735f5f5f66696c65732f5f5f726573756c74735f5f5f33345f302e706e67" />
+         src="https://docs.pymc.io/_images/notebooks_convolutional_vae_keras_advi_36_0.png" />
 </p>
 
 ### [`gan`](./gan/)
@@ -93,3 +94,9 @@ Such architectures are commonly used for object localization tasks, in which bot
 ### [`summary`](./summary/)
 **TensorFlow SummaryWriter and TensorBoard**  
 Reference code for using `tf.summary` methods, for visualization using TensorBoard. Some useful information that can be visualized are the model loss and accuracy over time, or the computation graph of the model itself. This can be helpful when running multiple experiments across various hyperparameters, such that you can easily [compare their performances in TensorBoard](https://github.com/tensorflow/tensorboard/blob/master/README.md#runs-comparing-different-executions-of-your-model). 
+
+### [`roi_pool`](./roi_pool/)
+**Region of interest (ROI) pooling**  
+ROI pooling was used in [Fast R-CNN](https://arxiv.org/abs/1504.08083) to convert variably-sized crops of feature maps into a fixed size. This allows us to perform tasks such as regression and classification on input images of different sizes, since fully-connected layers require inputs of specific sizes.
+
+![](https://cdn-sv1.deepsense.ai/wp-content/uploads/2017/02/roi_pooling-1.gif)
